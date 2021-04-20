@@ -121,7 +121,7 @@ deploy-apps:
   stage: cluster_apps_deploy
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-  trigger: apps/cluster
+  trigger: gitops/apps/cluster-management
   only:
     - master
 
@@ -144,7 +144,7 @@ destroy-gitlab-apps:
   when: manual
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-    GITLAB_MANAGED_APPS_FILE: apps/cluster/.gitlab/managed-apps/uninstall.yml
-  trigger: apps/cluster
+    GITLAB_MANAGED_APPS_FILE: gitops/apps/cluster-management/.gitlab/managed-apps/uninstall.yaml
+  trigger: gitops/apps/cluster-management
   only:
     - main
