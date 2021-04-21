@@ -109,7 +109,6 @@ deploy-apps:
   trigger:
     include: cloudnua-public/gitops/apps/cluster-management
     strategy: depend
-    branch: main
   only:
     - main
 
