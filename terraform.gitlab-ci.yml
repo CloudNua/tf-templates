@@ -109,6 +109,7 @@ deploy-apps:
   trigger:
     include:
       - project: 'cloudnua-public/gitops/apps/cluster-management'
+        ref: 'main'
         file: '/.gitlab-ci.yml'
     strategy: depend
   only:
