@@ -47,7 +47,7 @@ validate:
     - *install-curl-jq
     - *gitlab-tf-backend
     - terraform validate
-    - terraform fmt -check=true
+    - terraform fmt -check
   only:
     - branches
     - merge_requests
@@ -65,6 +65,7 @@ merge review:
     reports:
         terraform: $JSON_PLAN_FILE
   only:
+    - branches
     - merge_requests
 
 plan production:
