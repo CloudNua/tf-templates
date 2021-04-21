@@ -106,7 +106,10 @@ deploy-apps:
   stage: cluster_apps_deploy
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-  trigger: cloudnua-public/gitops/apps/cluster-management
+  trigger:
+    include: cloudnua-public/gitops/apps/cluster-management
+    strategy: depend
+    branch: main
   only:
     - main
 
@@ -130,6 +133,8 @@ destroy-gitlab-apps:
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
     GITLAB_MANAGED_APPS_FILE: cloudnua-public/gitops/apps/cluster-management/.gitlab/managed-apps/uninstall.yaml
-  trigger: cloudnua-public/gitops/apps/cluster-management
+  trigger:
+    project: cloudnua-public/gitops/apps/cluster-management
+    branch: main
   only:
     - main
