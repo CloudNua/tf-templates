@@ -106,10 +106,7 @@ deploy-apps:
   stage: cluster_apps_deploy
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-  trigger:
-    include:
-      - 'https://gitlab.com/cloudnua-public/gitops/apps/cluster-management/-/blob/954fc436abf6e82f35c9d488acf4b60a07b59b48/.gitlab-ci.yml'
-    strategy: depend
+  trigger: cloudnua-public/gitops/apps/cluster-management
   only:
     - main
 
