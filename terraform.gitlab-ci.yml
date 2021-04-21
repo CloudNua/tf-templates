@@ -65,7 +65,6 @@ merge review:
     reports:
         terraform: $JSON_PLAN_FILE
   only:
-    - branches
     - merge_requests
 
 plan production:
@@ -106,7 +105,7 @@ deploy-apps:
   stage: cluster_apps_deploy
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-  trigger: gitops/apps/cluster-management
+  trigger: cloudnua-public/gitops/apps/cluster-management
   only:
     - main
 
@@ -129,7 +128,7 @@ destroy-gitlab-apps:
   when: manual
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-    GITLAB_MANAGED_APPS_FILE: gitops/apps/cluster-management/.gitlab/managed-apps/uninstall.yaml
-  trigger: gitops/apps/cluster-management
+    GITLAB_MANAGED_APPS_FILE: cloudnua-public/gitops/apps/cluster-management/.gitlab/managed-apps/uninstall.yaml
+  trigger: cloudnua-public/gitops/apps/cluster-management
   only:
     - main
