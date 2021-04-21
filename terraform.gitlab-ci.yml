@@ -26,8 +26,8 @@ cache:
   - export TF_HTTP_LOCK_METHOD=POST
   - export TF_HTTP_UNLOCK_ADDRESS=${TF_ADDRESS}/lock
   - export TF_HTTP_UNLOCK_METHOD=DELETE
-  - export TF_HTTP_USERNAME=gitlab-ci-token
-  - export TF_HTTP_PASSWORD=${CI_JOB_TOKEN}
+  - export TF_HTTP_USERNAME=endk17
+  - export TF_HTTP_PASSWORD=${GITLAB_TOKEN}
   - export TF_HTTP_RETRY_WAIT_MIN=5
   - echo "Using HTTP Backend at $TF_HTTP_ADDRESS"
   - terraform --version
@@ -58,7 +58,7 @@ merge review:
     - *install-curl-jq
     - *gitlab-tf-backend
     - terraform plan -out=$PLAN
-    - "terraform show --json $PLAN | convert_report > $JSON_PLAN_FILE"
+    - terraform show --json $PLAN | convert_report > $JSON_PLAN_FILE
   artifacts:
     expire_in: 1 week
     name: plan
