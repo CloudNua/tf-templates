@@ -41,22 +41,6 @@ stages:
   - cluster_apps_destroy
   - iac_destroy
 
-vault ping:
-  image:
-    name: hashicorp/vault:latest
-    entrypoint:
-        - '/usr/bin/env'
-        - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
-  stage: .pre
-  script:
-    - echo "Check status of $VAULT_ADDR"
-    - |
-      until vault status
-      do
-        echo "Vault returned error or sealed"
-        sleep 5
-      done
-
 validate:
   stage: iac_validate
   script:
@@ -90,7 +74,7 @@ plan production:
     - *gitlab-tf-backend
     - terraform plan
   only:
-    - master
+    - main
   resource_group: production
 
 apply:
@@ -109,7 +93,7 @@ apply:
     reports:
       dotenv: deploy.env
   only:
-    - master
+    - main
   resource_group: production
   environment:
     name: production
@@ -123,7 +107,7 @@ deploy-apps:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
   trigger: gitops/apps/cluster-management
   only:
-    - master
+    - main
 
 destroy:
   stage: iac_destroy
@@ -134,7 +118,7 @@ destroy:
     - terraform destroy -auto-approve
   when: manual
   only:
-    - master  
+    - main  
   environment:
     name: production
     action: stop
