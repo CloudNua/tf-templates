@@ -1,0 +1,59 @@
+.docker_login: &docker_login |
+  set -x
+  # build stage script
+  if ! docker info &>/dev/null; then
+    if [ -z "$DOCKER_HOST" -a "$KUBERNETES_PORT" ]; then
+      export DOCKER_HOST='tcp://localhost:2375'
+    fi
+  fi
+
+  if [[ -n "$CI_REGISTRY_USER" ]]; then
+    echo "Logging to GitLab Container Registry with CI credentials..."
+    docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  fi
+
+build_image:
+  stage: build
+  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image/master:stable"
+  services:
+    - docker:stable-dind
+  variables:
+    BUILD_IMAGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
+  before_script:
+    - echo "Logging to GitLab Container Registry with CI credentials..."
+    - *docker_login
+  script:
+    - >-
+       docker build
+       --build-arg BUILDPACK_URL="$BUILDPACK_URL"
+       --build-arg HTTP_PROXY="$HTTP_PROXY"
+       --build-arg http_proxy="$http_proxy"
+       --build-arg HTTPS_PROXY="$HTTPS_PROXY"
+       --build-arg https_proxy="$https_proxy"
+       --build-arg FTP_PROXY="$FTP_PROXY"
+       --build-arg ftp_proxy="$ftp_proxy"
+       --build-arg NO_PROXY="$NO_PROXY"
+       --build-arg no_proxy="$no_proxy"
+       $AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS
+       --tag $BUILD_IMAGE_NAME .
+    - docker push "$BUILD_IMAGE_NAME"
+
+
+
+release_image:
+  stage: release
+  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image/master:stable"
+  services:
+    - docker:stable-dind
+  variables:
+    BUILD_IMAGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
+    RELEASE_IAMGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:latest"
+  before_script:
+    - echo "Logging to GitLab Container Registry with CI credentials..."
+    - *docker_login
+  script:
+    - docker pull $BUILD_IMAGE_NAME
+    - docker tag $BUILD_IMAGE_NAME $RELEASE_IAMGE_NAME
+    - docker push $RELEASE_IAMGE_NAME
+  only:
+    - master
