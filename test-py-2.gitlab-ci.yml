@@ -1,5 +1,5 @@
 mypy:
-  stage: Static Analysis
+  stage: static analysis
   image: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
   allow_failure: true
   before_script:
@@ -11,7 +11,7 @@ mypy:
     - main
 
 flake8:
-  stage: Static Analysis
+  stage: static analysis
   image: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
   allow_failure: true
   before_script:
@@ -26,7 +26,7 @@ flake8:
     - main
 
 pylint:
-  stage: Static Analysis
+  stage: static analysis
   image: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
   allow_failure: true
   before_script:
@@ -43,7 +43,7 @@ pylint:
     - main
 
 unit_test_1:
-  stage: Test
+  stage: test
   image: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
   allow_failure: true
   before_script:
@@ -59,7 +59,7 @@ unit_test_1:
     - main
 
 unit_test_2:
-  stage: Test
+  stage: test
   image: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
   allow_failure: true
   before_script:
