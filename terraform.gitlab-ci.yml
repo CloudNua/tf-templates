@@ -74,7 +74,7 @@ plan production:
     - *gitlab-tf-backend
     - terraform plan
   only:
-    - master
+    - main
   resource_group: production
 
 apply:
@@ -93,7 +93,7 @@ apply:
     reports:
       dotenv: deploy.env
   only:
-    - master
+    - main
   resource_group: production
   environment:
     name: production
@@ -109,7 +109,7 @@ deploy-apps:
     GITLAB_TOKEN: $GITLAB_TOKEN
   trigger: gitops-cloudnua/apps/cluster-management
   only:
-    - master
+    - main
 
 destroy:
   stage: destroy
@@ -120,7 +120,7 @@ destroy:
     - terraform destroy -auto-approve
   when: manual
   only:
-    - master  
+    - main
   environment:
     name: production
     action: stop
@@ -133,4 +133,4 @@ destroy-gitlab-apps:
     GITLAB_MANAGED_APPS_FILE: /builds/gitops-cloudnua/apps/cluster-management/.gitlab/managed-apps/uninstall.yml
   trigger: gitops-cloudnua/apps/cluster-management
   only:
-    - master
+    - main
