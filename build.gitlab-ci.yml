@@ -14,7 +14,7 @@
 
 build_image:
   stage: build
-  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image/main:stable"
+  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image/master:stable"
   services:
     - docker:stable-dind
   variables:
@@ -37,17 +37,19 @@ build_image:
        $AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS
        --tag $BUILD_IMAGE_NAME .
     - docker push "$BUILD_IMAGE_NAME"
-
-
+  only:
+    - branches
+    - merge_requests
+    - tags
 
 release_image:
   stage: release
-  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image/main:stable"
+  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-build-image/master:stable"
   services:
     - docker:stable-dind
   variables:
     BUILD_IMAGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"
-    RELEASE_IAMGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:latest"
+    RELEASE_IAMGE_NAME: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_TAG"
   before_script:
     - echo "Logging to GitLab Container Registry with CI credentials..."
     - *docker_login
@@ -56,4 +58,4 @@ release_image:
     - docker tag $BUILD_IMAGE_NAME $RELEASE_IAMGE_NAME
     - docker push $RELEASE_IAMGE_NAME
   only:
-    - main
+    - tags
