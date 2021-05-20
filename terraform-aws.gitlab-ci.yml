@@ -1,0 +1,140 @@
+image:
+  name: hashicorp/terraform:0.14.10
+  entrypoint:
+    - '/usr/bin/env'
+    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+# Default output file for Terraform plan
+variables:
+  PLAN: plan.tfplan
+  JSON_PLAN_FILE: tfplan.json
+  TF_IN_AUTOMATION: "true"
+
+cache:
+  key: "$CI_COMMIT_SHA"
+  paths:
+    - .terraform
+
+.install-curl-jq: &install-curl-jq
+  - apk add --update curl jq
+  - alias convert_report="jq -r '([.resource_changes[].change.actions?]|flatten)|{\"create\":(map(select(.==\"create\"))|length),\"update\":(map(select(.==\"update\"))|length),\"delete\":(map(select(.==\"delete\"))|length)}'"
+
+.gitlab-tf-backend: &gitlab-tf-backend
+  - export TF_ADDRESS=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/production
+  - export TF_HTTP_ADDRESS=${TF_ADDRESS}
+  - export TF_HTTP_LOCK_ADDRESS=${TF_ADDRESS}/lock
+  - export TF_HTTP_LOCK_METHOD=POST
+  - export TF_HTTP_UNLOCK_ADDRESS=${TF_ADDRESS}/lock
+  - export TF_HTTP_UNLOCK_METHOD=DELETE
+  - export TF_HTTP_USERNAME=endk17
+  - export TF_HTTP_PASSWORD=${GITLAB_TOKEN}
+  - export TF_HTTP_RETRY_WAIT_MIN=5
+  - echo "Using HTTP Backend at $TF_HTTP_ADDRESS"
+  - terraform --version
+  - terraform init -reconfigure
+
+.gcp-tf-creds: &gcp-tf-creds
+  - export TF_CREDS=${GCP_CREDENTIALS}
+  - export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
+
+stages:
+  - validate
+  - plan
+  - apply
+  - deploy
+  - destroy-apps
+  - destroy
+
+validate:
+  stage: validate
+  script:
+    - *install-curl-jq
+    - *gitlab-tf-backend
+    - terraform validate
+    - terraform fmt -check=true
+  only:
+    - branches
+    - merge_requests
+
+merge_review_aws:
+  stage: plan
+  script:
+    - *install-curl-jq
+    - *gitlab-tf-backend
+    - terraform plan -out=$PLAN
+    - "terraform show --json $PLAN | convert_report > $JSON_PLAN_FILE"
+  artifacts:
+    expire_in: 1 week
+    name: plan
+    reports:
+        terraform: $JSON_PLAN_FILE
+  only:
+    - merge_requests
+
+plan_aws_prod:
+  stage: plan
+  script:
+    - *install-curl-jq
+    - *gitlab-tf-backend
+    - terraform plan
+  resource_group: production
+  only:
+    - master
+
+apply_aws_prod:
+  stage: apply
+  script:
+    - *install-curl-jq
+    - *gitlab-tf-backend
+    - terraform apply -auto-approve
+    - DYNAMIC_ENVIRONMENT_URL=$(terraform output -no-color env-dynamic-url)
+    - echo "DYNAMIC_ENVIRONMENT_URL=$DYNAMIC_ENVIRONMENT_URL" >> deploy.env
+  dependencies:
+    - plan_aws_prod
+  artifacts:
+    expire_in: 1 week
+    name: $CI_COMMIT_REF_SLUG
+    reports:
+      dotenv: deploy.env
+  resource_group: production
+  environment:
+    name: production
+    url: $DYNAMIC_ENVIRONMENT_URL
+    on_stop: destroy_aws_prod
+    auto_stop_in: 6 hours
+  only:
+    - master
+
+destroy_aws_prod:
+  stage: destroy
+  needs: []
+  script:
+    - *install-curl-jq
+    - *gitlab-tf-backend
+    - terraform destroy -auto-approve
+  when: manual
+  environment:
+    name: production
+    action: stop
+  only:
+    - master
+
+deploy_apps_aws:
+  stage: deploy
+  variables:
+    APP_ENVIRONMENT: $CI_PROJECT_NAME
+    PROJECT_ID: $CI_PROJECT_ID
+    GITLAB_TOKEN: $GITLAB_TOKEN
+  trigger: gitops-cloudnua/apps/cluster-management
+  only:
+    - master
+
+destroy_gitlab_apps_aws:
+  stage: destroy-apps
+  when: manual
+  variables:
+    APP_ENVIRONMENT: $CI_PROJECT_NAME
+    GITLAB_MANAGED_APPS_FILE: /builds/gitops-cloudnua/apps/cluster-management/.gitlab/managed-apps/uninstall.yml
+  trigger: gitops-cloudnua/apps/cluster-management
+  only:
+    - master

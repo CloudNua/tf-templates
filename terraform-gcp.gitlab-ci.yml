@@ -26,12 +26,18 @@ cache:
   - export TF_HTTP_LOCK_METHOD=POST
   - export TF_HTTP_UNLOCK_ADDRESS=${TF_ADDRESS}/lock
   - export TF_HTTP_UNLOCK_METHOD=DELETE
-  - export TF_HTTP_USERNAME=endk17
+  - export TF_HTTP_USERNAME=gitlab+deploy-token+gcp
   - export TF_HTTP_PASSWORD=${GITLAB_TOKEN}
   - export TF_HTTP_RETRY_WAIT_MIN=5
   - echo "Using HTTP Backend at $TF_HTTP_ADDRESS"
   - terraform --version
   - terraform init -reconfigure
+
+# .gcp-tf-creds: &gcp-tf-creds
+#   - echo $GCP_CREDENTIALS | base64 -d > /tmp/$CI_PIPELINE_ID.json
+#   - cat /tmp/$CI_PIPELINE_ID.json
+#   - export TF_CREDS=/tmp/$CI_PIPELINE_ID.json
+#   - export GOOGLE_APPLICATION_CREDENTIALS=${TF_CREDS}
 
 stages:
   - validate
@@ -46,17 +52,19 @@ validate:
   script:
     - *install-curl-jq
     - *gitlab-tf-backend
+    # - *gcp-tf-creds
     - terraform validate
     - terraform fmt -check=true
   only:
     - branches
     - merge_requests
 
-merge review:
+merge_review_gcp:
   stage: plan
   script:
     - *install-curl-jq
     - *gitlab-tf-backend
+    # - *gcp-tf-creds
     - terraform plan -out=$PLAN
     - "terraform show --json $PLAN | convert_report > $JSON_PLAN_FILE"
   artifacts:
@@ -67,41 +75,58 @@ merge review:
   only:
     - merge_requests
 
-plan production:
+plan_gcp_prod:
   stage: plan
   script:
     - *install-curl-jq
     - *gitlab-tf-backend
+    # - *gcp-tf-creds
     - terraform plan
-  only:
-    - main
   resource_group: production
+  only:
+    - master
 
-apply:
+apply_gcp_prod:
   stage: apply
   script:
     - *install-curl-jq
     - *gitlab-tf-backend
+    # - *gcp-tf-creds
     - terraform apply -auto-approve
     - DYNAMIC_ENVIRONMENT_URL=$(terraform output -no-color env-dynamic-url)
     - echo "DYNAMIC_ENVIRONMENT_URL=$DYNAMIC_ENVIRONMENT_URL" >> deploy.env
   dependencies:
-    - plan production
+    - plan_gcp_prod
   artifacts:
     expire_in: 1 week
     name: $CI_COMMIT_REF_SLUG
     reports:
       dotenv: deploy.env
-  only:
-    - main
   resource_group: production
   environment:
     name: production
     url: $DYNAMIC_ENVIRONMENT_URL
-    on_stop: destroy
-    auto_stop_in: 12 hours
+    on_stop: destroy_gcp_prod
+    auto_stop_in: 6 hours
+  only:
+    - master
 
-deploy-apps:
+destroy_gcp_prod:
+  stage: destroy
+  needs: []
+  script:
+    - *install-curl-jq
+    - *gitlab-tf-backend
+    # - *gcp-tf-creds
+    - terraform destroy -auto-approve
+  when: manual
+  environment:
+    name: production
+    action: stop
+  only:
+    - master
+
+deploy_apps_gcp:
   stage: deploy
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
@@ -109,23 +134,9 @@ deploy-apps:
     GITLAB_TOKEN: $GITLAB_TOKEN
   trigger: gitops-cloudnua/apps/cluster-management
   only:
-    - main
+    - master
 
-destroy:
-  stage: destroy
-  needs: []
-  script:
-    - *install-curl-jq
-    - *gitlab-tf-backend
-    - terraform destroy -auto-approve
-  when: manual
-  only:
-    - main
-  environment:
-    name: production
-    action: stop
-
-destroy-gitlab-apps:
+destroy_gitlab_apps_gcp:
   stage: destroy-apps
   when: manual
   variables:
@@ -133,4 +144,4 @@ destroy-gitlab-apps:
     GITLAB_MANAGED_APPS_FILE: /builds/gitops-cloudnua/apps/cluster-management/.gitlab/managed-apps/uninstall.yml
   trigger: gitops-cloudnua/apps/cluster-management
   only:
-    - main
+    - master
