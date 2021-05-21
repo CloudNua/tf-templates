@@ -132,7 +132,7 @@ deploy_apps_gcp:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
     PROJECT_ID: $CI_PROJECT_ID
     GITLAB_TOKEN: $GITLAB_TOKEN
-  trigger: gitops-cloudnua/apps/cluster-management
+  trigger: cloudnua-public/gitops/apps/cluster-management
   only:
     - master
 
@@ -141,7 +141,7 @@ destroy_gitlab_apps_gcp:
   when: manual
   variables:
     APP_ENVIRONMENT: $CI_PROJECT_NAME
-    GITLAB_MANAGED_APPS_FILE: /builds/gitops-cloudnua/apps/cluster-management/.gitlab/managed-apps/uninstall.yml
-  trigger: gitops-cloudnua/apps/cluster-management
+    GITLAB_MANAGED_APPS_FILE: /builds/cloudnua-public/gitops/apps/cluster-management/.gitlab/managed-apps/uninstall.yml
+  trigger: cloudnua-public/gitops/apps/cluster-management
   only:
     - master
